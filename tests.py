@@ -1,21 +1,80 @@
+import sys
 import brainfuck
 import unittest
 from StringIO import StringIO
 
 
-class HelloWorldTests(unittest.TestCase):
+class ProgramTests(unittest.TestCase):
     def test_hello(self):
-        with open("hello.bf") as f:
-            self._test(f.read())
+        self._test("hello.bf", "", "Hello World!\n")
 
     def test_hello_small(self):
-        with open("hellosmall.bf") as f:
-            self._test(f.read())
+        self._test("hellosmall.bf", "", "Hello World!\n")
 
-    def _test(self, code):
+    def test_rot13(self):
+        self._test("rot13.bf", "foobar", "sbbone")
+
+    def _test(self, filename, input_str, expected_output):
+        with open(filename, "r") as f:
+            code = f.read()
         # Test function
         func = brainfuck.to_function(code)
-        self.assertEqual(func(), "Hello World!\n")
+        self.assertEqual(func(input_str), expected_output)
+        # Test procedure
+        func = brainfuck.to_procedure(code)
+        out_, in_ = StringIO(), StringIO(input_str)
+        func(out_, in_)
+        self.assertEqual(out_.getvalue(), expected_output)
+        # Test module
+        module = brainfuck.to_module(code)
+        out_, in_ = StringIO(), StringIO(input_str)
+        old_out, old_in = sys.stdout, sys.stdin
+        try:
+            sys.stdout, sys.stdin = out_, in_
+            exec compile(module, "<brainfuck>", "exec") in globals(), locals()
+        finally:
+            sys.stdout, sys.stdin = old_out, old_in
+        self.assertEqual(out_.getvalue(), expected_output)
+
+
+class ImportHookTests(unittest.TestCase):
+    def tearDown(self):
+        brainfuck.remove_import_hook()
+
+    def test_no_hook(self):
+        with self.assertRaises(ImportError):
+            import hello
+
+    def test_install_hook(self):
+        brainfuck.install_import_hook()
+        import hello
+        self.assertEqual(hello(), "Hello World!\n")
+
+    def test_remove_hook(self):
+        brainfuck.install_import_hook()
+        brainfuck.remove_import_hook()
+        with self.assertRaises(ImportError):
+            import hello
+        for importer in sys.meta_path:
+            self.assertFalse(isinstance(importer, brainfuck.BrainfuckImporter))
+
+    def test_custom_importer(self):
+        cache = {"called": False}
+        class Importer(brainfuck.BrainfuckImporter):
+            def load_module(self, fullname):
+                cache["called"] = True
+                return super(Importer, self).load_module(fullname)
+
+        brainfuck.install_import_hook(importer=Importer())
+        import hello
+        self.assertTrue(cache["called"])
+
+    def test_custom_kwargs(self):
+        brainfuck.install_import_hook(file_extensions=("bar",))
+        for importer in sys.meta_path:
+            if isinstance(importer, brainfuck.BrainfuckImporter):
+                break
+        self.assertEquals(importer.file_extensions, ("bar",))
 
 
 if __name__ == "__main__":

@@ -108,8 +108,12 @@ def parse_ast(code):
             instructions.append(_parse_node(
                 "output.write(chr(memory[data_ptr]))"))
         elif char == ",":
+            # NOTE: EOF behaviour is not well defined in brainfuck
+            # in this implementation, -1 is used
             instructions.append(_parse_node(
-                "memory[data_ptr] = ord(input.read(1))"))
+                "_tmp = input.read(1)"))
+            instructions.append(_parse_node(
+                "memory[data_ptr] = ord(_tmp) if _tmp else -1"))
         elif char == "[":
             node = _parse_node("while memory[data_ptr]: pass")
             instructions.append(node)
