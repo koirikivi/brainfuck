@@ -1,3 +1,19 @@
+"""
+brainfuck.py - brainfuck-to-python-AST compiler and related utilities
+
+This module provides utilities for seamless usage of brainfuck programs in
+Python environments. The meat of the module consists of the `to_*` functions
+that convert code written in brainfuck to native Python datatypes, such as
+functions or modules. The conversion is done using the Python abstract syntax
+tree (AST), which enables flexible, run-time integration between the two
+languages.
+
+An import hook is also provided for convenience. It can be installed by calling
+`install_import_hook`, after which brainfuck modules (with the file extennsion
+as "bf" or "b" by default) can be imported anywhere from sys.path.
+
+License: MIT
+"""
 import ast
 from collections import defaultdict
 import os
@@ -11,7 +27,7 @@ __all__ = ("to_function", "to_procedure", "to_module", "parse_ast",
 
 
 def to_function(code):
-    """Parse brainfuck code to a function that takes a string as input
+    """Parse brainfuck code to a function that takes a string as an input
     parameter and returns a string"""
     procedure = to_procedure(code)
 
