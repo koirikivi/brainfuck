@@ -6,13 +6,13 @@ from StringIO import StringIO
 
 class ProgramTests(unittest.TestCase):
     def test_hello(self):
-        self._test("hello.bf", "", "Hello World!\n")
+        self._test("programs/hello.bf", "", "Hello World!\n")
 
     def test_hello_small(self):
-        self._test("hellosmall.bf", "", "Hello World!\n")
+        self._test("programs/hellosmall.bf", "", "Hello World!\n")
 
     def test_rot13(self):
-        self._test("rot13.bf", "foobar", "sbbone")
+        self._test("programs/rot13.bf", "foobar", "sbbone")
 
     def _test(self, filename, input_str, expected_output):
         with open(filename, "r") as f:
@@ -38,7 +38,11 @@ class ProgramTests(unittest.TestCase):
 
 
 class ImportHookTests(unittest.TestCase):
+    def setUp(self):
+        sys.path.append("programs")
+
     def tearDown(self):
+        sys.path.remove("programs")
         brainfuck.remove_import_hook()
 
     def test_no_hook(self):
@@ -49,6 +53,11 @@ class ImportHookTests(unittest.TestCase):
         brainfuck.install_import_hook()
         import hello
         self.assertEqual(hello(), "Hello World!\n")
+
+    def test_submodule(self):
+        brainfuck.install_import_hook()
+        import subdir.subhello
+        self.assertEqual(subdir.subhello(), "Hello World!\n")
 
     def test_remove_hook(self):
         brainfuck.install_import_hook()
