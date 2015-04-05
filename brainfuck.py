@@ -1,19 +1,26 @@
 import ast
-import sys
 from collections import defaultdict
-from textwrap import dedent
+import os
 from StringIO import StringIO
+import sys
+from textwrap import dedent
+
+
+__all__ = ("to_function", "to_procedure", "to_module", "parse_ast",
+           "BrainfuckImporter", "install_import_hook", "remove_import_hook")
 
 
 def to_function(code):
     """Parse brainfuck code to a function that takes a string as input
     parameter and returns a string"""
     procedure = to_procedure(code)
+
     def _brainfuck(input_str=""):
         output = StringIO()
         input = StringIO(input_str)
         procedure(output=output, input=input)
         return output.getvalue()
+
     return _brainfuck
 
 
@@ -23,6 +30,7 @@ def to_procedure(code):
     stdout/stdin are used)"""
     module = ast.Module(body=parse_ast(code))
     module = ast.fix_missing_locations(module)
+
     def _brainfuck(output=None, input=None):
         if output is None:
             output = sys.stdout
@@ -31,6 +39,7 @@ def to_procedure(code):
         data_ptr = 0
         memory = defaultdict(int)
         exec compile(module, "<brainfuck>", "exec") in globals(), locals()
+
     return _brainfuck
 
 
@@ -43,7 +52,7 @@ def to_module(code):
     memory = defaultdict(int)
     """))
     instructions = parse_ast(code)
-    module,body.extend(instructions)
+    module.body.extend(instructions)
     module = ast.fix_missing_locations(module)
     return module
 
@@ -103,10 +112,80 @@ def _parse_node(expression):
     return module.body[0]
 
 
+class BrainfuckImporter(object):
+    """Import hook that finds brainfuck files anywhere in the system path and
+    loads them as callable functions"""
+
+    def __init__(self, file_extensions=("bf", "b"),
+                 module_factory=to_function):
+        self.file_extensions = file_extensions
+        self.module_factory = to_function
+
+    def find_module(self, fullname, path=None):
+        if self._find_module_path(fullname):
+            return self
+        return None
+
+    def load_module(self, fullname):
+        path = self._find_module_path(fullname)
+        if not path:
+            raise ImportError
+        with open(path, "r") as f:
+            code = f.read()
+        return self.module_factory(code)
+
+    def _find_module_path(self, fullname):
+        parts = fullname.split(".")
+        for base_path in sys.path:
+            for extension in self.file_extensions:
+                filename = "{}.{}".format(parts[-1], extension)
+
+                path_parts = []
+                if base_path:
+                    path_parts.append(base_path)
+                path_parts.extend(parts[:-1])
+                path_parts.append(filename)
+
+                full_path = os.path.join(*path_parts)
+                if os.path.exists(full_path):
+                    return full_path
+        return None
+
+
+def install_import_hook(importer=None, **kwargs):
+    """Install a module importer that finds and loads brainfuck files
+
+    Replace existing loader if one exists (and return False), return True if no
+    existing loader was found.
+
+    The importer can be speficied as a parameter, as can keyword arguments that
+    are passed to it. In this case, the importer is assumed to be derived from
+    the BrainfuckImporter class.
+    """
+    if importer is None:
+        importer = BrainfuckImporter(**kwargs)
+
+    for i, current in enumerate(sys.meta_path):
+        if isinstance(current, BrainfuckImporter):
+            sys.meta_path[i] = importer
+            return False
+    sys.meta_path.append(importer)
+    return True
+
+
+def remove_import_hook():
+    """Remove the brainfuck module importer from system module importers"""
+    for i, importer in enumerate(sys.meta_path):
+        if isinstance(importer, BrainfuckImporter):
+            del sys.meta_path[i]
+            return True
+    return False
+
+
 if __name__ == "__main__":
-    with open("hello.bf", "r") as f:
-        hello_code = f.read()
-    hello_procedure = to_procedure(hello_code)
-    hello_procedure()
-    hello_function = to_function(hello_code)
-    print hello_function()
+    if len(sys.argv) != 2:
+        print("Usage: {} <brainfuck file>".format(sys.argv[0]))
+        sys.exit(1)
+    with open(sys.argv[1], "r") as f:
+        code = f.read()
+    to_procedure(code)()
