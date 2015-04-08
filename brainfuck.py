@@ -18,6 +18,7 @@ import ast
 from collections import defaultdict
 import os
 import sys
+import types
 from textwrap import dedent
 try:
     from cStringIO import StringIO
@@ -146,14 +147,26 @@ def _exec(module, globals_, locals_):
         exec(compile(module, "<brainfuck>", "exec"), globals_, locals_)
 
 
+class BrainfuckModule(types.ModuleType):
+    def __init__(self, fullname, code):
+        super(BrainfuckModule, self).__init__(fullname)
+        self.__brainfuck_code__ = code
+        self.__brainfuck_function__ = to_function(code)
+        _, _, func_name = fullname.rpartition(".")
+        setattr(self, func_name, self.__brainfuck_function__)
+
+    def __call__(self, input_str=""):
+        return self.__brainfuck_function__(input_str)
+
+
 class BrainfuckImporter(object):
     """Import hook that finds brainfuck files anywhere in the system path and
-    loads them as callable functions"""
+    loads them as modules"""
 
     def __init__(self, file_extensions=("bf", "b"),
-                 module_factory=to_function):
+                 module_type=BrainfuckModule):
         self.file_extensions = file_extensions
-        self.module_factory = to_function
+        self.module_type = module_type
 
     def find_module(self, fullname, path=None):
         if self._find_module_path(fullname):
@@ -161,12 +174,22 @@ class BrainfuckImporter(object):
         return None
 
     def load_module(self, fullname):
+        if fullname in sys.modules:
+            # Cached
+            return sys.modules[fullname]
+
         path = self._find_module_path(fullname)
         if not path:
             raise ImportError
         with open(path, "r") as f:
             code = f.read()
-        return self.module_factory(code)
+
+        module = self.module_type(fullname, code)
+        module.__loader__ = self
+
+        sys.modules[fullname] = module
+
+        return module
 
     def _find_module_path(self, fullname):
         parts = fullname.split(".")
@@ -209,6 +232,8 @@ def install_import_hook(importer=None, **kwargs):
 
 def remove_import_hook():
     """Remove the brainfuck module importer from system module importers"""
+    # NOTE: removing the import hook still leaves all imported brainfuck
+    # modules in sys.modules
     for i, importer in enumerate(sys.meta_path):
         if isinstance(importer, BrainfuckImporter):
             del sys.meta_path[i]

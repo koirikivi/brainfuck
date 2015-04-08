@@ -47,6 +47,10 @@ class ImportHookTests(unittest.TestCase):
     def tearDown(self):
         sys.path.remove("programs")
         brainfuck.remove_import_hook()
+        # Remove imported brainfuck modules
+        for key, module in list(sys.modules.items()):
+            if hasattr(module, "__brainfuck_function__"):
+                del sys.modules[key]
 
     def test_no_hook(self):
         with self.assertRaises(ImportError):
