@@ -20,9 +20,12 @@ import os
 import sys
 from textwrap import dedent
 try:
-    from StringIO import StringIO
+    from cStringIO import StringIO
 except ImportError:
-    from io import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 
 __all__ = ("to_function", "to_procedure", "to_module", "parse_ast",
@@ -135,11 +138,12 @@ def _parse_node(expression):
     return module.body[0]
 
 def _exec(module, globals_, locals_):
-    if sys.version_info[0] == 3:
-        exec(compile(module, "<brainfuck>", "exec"), globals_, locals_)
+    if sys.version_info[0] == 2:
+        exec(
+        'exec compile(module, "<brainfuck>", "exec") in globals_, locals_'
+        )
     else:
-        # Python2
-        exec("""exec compile(module, "<brainfuck>", "exec") in globals_, locals_""")
+        exec(compile(module, "<brainfuck>", "exec"), globals_, locals_)
 
 
 class BrainfuckImporter(object):

@@ -1,10 +1,10 @@
 import sys
 import brainfuck
 import unittest
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
+
+
+_exec = brainfuck._exec
+StringIO = brainfuck.StringIO
 
 
 class ProgramTests(unittest.TestCase):
@@ -34,7 +34,7 @@ class ProgramTests(unittest.TestCase):
         old_out, old_in = sys.stdout, sys.stdin
         try:
             sys.stdout, sys.stdin = out_, in_
-            brainfuck._exec(module, globals(), locals())
+            _exec(module, globals(), locals())
         finally:
             sys.stdout, sys.stdin = old_out, old_in
         self.assertEqual(out_.getvalue(), expected_output)
