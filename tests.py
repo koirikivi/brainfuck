@@ -90,7 +90,7 @@ class ImportHookTests(unittest.TestCase):
         for importer in sys.meta_path:
             if isinstance(importer, brainfuck.BrainfuckImporter):
                 break
-        self.assertEquals(importer.file_extensions, ("bar",))
+        self.assertEqual(importer.file_extensions, ("bar",))
 
 
 if __name__ == "__main__":
