@@ -58,7 +58,7 @@ tested.
 Unit tests
 ----------
 
-Run tests with ``$ python tests.py``
+Run tests with ``$ python test_brainfuck.py``
 
 
 TODO

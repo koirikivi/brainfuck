@@ -29,6 +29,7 @@ except ImportError:
         from io import StringIO
 
 
+__version__ = "0.9.0"
 __all__ = ("to_function", "to_procedure", "to_module", "parse_ast",
            "BrainfuckImporter", "install_import_hook", "remove_import_hook")
 
