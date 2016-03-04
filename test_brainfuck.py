@@ -1,10 +1,17 @@
 import sys
 import brainfuck
 import unittest
+try:
+    from cStringIO import StringIO
+except ImportError:
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 
-_exec = brainfuck._exec
-StringIO = brainfuck.StringIO
+def _exec(module, globals_, locals_):
+    exec(compile(module, "<brainfuck>", "exec"), globals_, locals_)
 
 
 class ProgramTests(unittest.TestCase):

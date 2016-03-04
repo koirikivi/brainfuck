@@ -15,21 +15,13 @@ as "bf" or "b" by default) can be imported anywhere from sys.path.
 License: MIT
 """
 import ast
-from collections import defaultdict
 import os
 import sys
 import types
 from textwrap import dedent
-try:
-    from cStringIO import StringIO
-except ImportError:
-    try:
-        from StringIO import StringIO
-    except ImportError:
-        from io import StringIO
 
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 __all__ = ("to_function", "to_procedure", "to_module", "parse_ast",
            "BrainfuckImporter", "install_import_hook", "remove_import_hook")
 
@@ -37,34 +29,53 @@ __all__ = ("to_function", "to_procedure", "to_module", "parse_ast",
 def to_function(code):
     """Parse brainfuck code to a function that takes a string as an input
     parameter and returns a string"""
-    procedure = to_procedure(code)
 
+    module = ast.parse(dedent("""\
     def _brainfuck(input_str=""):
+        try:
+            from cStringIO import StringIO
+        except ImportError:
+            try:
+                from StringIO import StringIO
+            except ImportError:
+                from io import StringIO
+        from collections import defaultdict
+        data_ptr = 0
+        memory = defaultdict(int)
         output = StringIO()
         input = StringIO(input_str)
-        procedure(output=output, input=input)
-        return output.getvalue()
-
-    return _brainfuck
+    """))
+    return_statement = _parse_node("return output.getvalue()")
+    brainfuck_instructions = parse_ast(code)
+    function = module.body[0]
+    function.body.extend(brainfuck_instructions)
+    function.body.append(return_statement)
+    module = ast.fix_missing_locations(module)
+    exec(compile(module, "<brainfuck>", "exec"), globals(), locals())
+    return locals()["_brainfuck"]
 
 
 def to_procedure(code):
     """Parse brainfuck code to a procedure that takes two file-like objects as
     parameters, the streams for output and input (if none are given,
     stdout/stdin are used)"""
-    module = ast.Module(body=parse_ast(code))
-    module = ast.fix_missing_locations(module)
-
+    module = ast.parse(dedent("""\
     def _brainfuck(output=None, input=None):
+        import sys
+        from collections import defaultdict
+        data_ptr = 0
+        memory = defaultdict(int)
         if output is None:
             output = sys.stdout
         if input is None:
             input = sys.stdin
-        data_ptr = 0
-        memory = defaultdict(int)
-        _exec(module, globals(), locals())
-
-    return _brainfuck
+    """))
+    brainfuck_instructions = parse_ast(code)
+    function = module.body[0]
+    function.body.extend(brainfuck_instructions)
+    module = ast.fix_missing_locations(module)
+    exec(compile(module, "<brainfuck>", "exec"), globals(), locals())
+    return locals()["_brainfuck"]
 
 
 def to_module(code):
@@ -138,9 +149,6 @@ def _parse_node(expression):
     module = ast.parse(expression)
     assert len(module.body) == 1
     return module.body[0]
-
-def _exec(module, globals_, locals_):
-    exec(compile(module, "<brainfuck>", "exec"), globals_, locals_)
 
 
 class BrainfuckModule(types.ModuleType):
