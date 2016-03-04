@@ -140,12 +140,7 @@ def _parse_node(expression):
     return module.body[0]
 
 def _exec(module, globals_, locals_):
-    if sys.version_info[0] == 2:
-        exec(
-        'exec compile(module, "<brainfuck>", "exec") in globals_, locals_'
-        )
-    else:
-        exec(compile(module, "<brainfuck>", "exec"), globals_, locals_)
+    exec(compile(module, "<brainfuck>", "exec"), globals_, locals_)
 
 
 class BrainfuckModule(types.ModuleType):
