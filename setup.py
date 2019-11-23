@@ -9,7 +9,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 
-classifiers=[
+classifiers = [
     'Intended Audience :: Developers',
     'Topic :: Software Development :: Compilers',
     'License :: OSI Approved :: MIT License',
@@ -17,9 +17,12 @@ classifiers=[
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.4',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: Implementation :: CPython',
     'Programming Language :: Python :: Implementation :: PyPy',
-],
+]
 
 
 setup(
@@ -27,6 +30,7 @@ setup(
     version=brainfuck.__version__,
     description='Brainfuck to Python AST compilation and integration',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/koirikivi/brainfuck',
     author='Rainer Koirikivi',
     author_email='rainer@koirikivi.fi',
