@@ -26,7 +26,7 @@ classifiers = [
 
 
 setup(
-    name='brainfuck',
+    name='python-brainfuck',
     version=brainfuck.__version__,
     description='Brainfuck to Python AST compilation and integration',
     long_description=long_description,

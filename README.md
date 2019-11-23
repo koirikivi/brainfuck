@@ -33,7 +33,7 @@ Installation
 ------------
 
 ```
-$ pip install brainfuck
+$ pip install python-brainfuck
 ```
 
 OR
